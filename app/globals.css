@@ -1,0 +1,72 @@
+:root {
+  --bg: #0E1216;
+  --card: #171C22;
+  --card-2: #1F262E;
+  --linha: #2A323B;
+  --txt: #E7ECF1;
+  --txt-2: #AEB9C6;
+  --txt-3: #7F8B99;
+  --ok: #2FB8A0;
+  --alerta: #D9A32E;
+  --perigo: #E4756A;
+  --duda: #5B9BF0;
+  --rayana: #D9A03A;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: dark; }
+body {
+  background: var(--bg); color: var(--txt);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 56px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* cabecalho */
+.topo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.topo h1 { font-size: 19px; font-weight: 650; letter-spacing: -0.01em; }
+.topo .ciclo { font-family: var(--mono); font-size: 12px; color: var(--txt-3); text-transform: uppercase; letter-spacing: .08em; }
+.sair { background: none; border: 1px solid var(--linha); color: var(--txt-3); font-size: 12px; padding: 5px 11px; border-radius: 6px; cursor: pointer; }
+.sair:hover { color: var(--txt); border-color: var(--txt-3); }
+
+/* bloco principal */
+.hero { background: var(--card); border: 1px solid var(--linha); border-radius: 14px; padding: 20px; margin-bottom: 14px; }
+.hero .rot { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); }
+.hero .grande { font-family: var(--mono); font-size: 38px; font-weight: 650; letter-spacing: -0.03em; line-height: 1.1; margin: 6px 0 2px; }
+.hero .de { font-size: 14px; color: var(--txt-2); }
+.barra { height: 9px; background: var(--card-2); border-radius: 99px; overflow: hidden; margin: 16px 0 9px; display: flex; gap: 2px; }
+.barra i { display: block; height: 100%; border-radius: 99px; }
+.legenda { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--txt-3); }
+
+/* secoes */
+h2 { font-size: 13px; font-weight: 600; color: var(--txt-3); text-transform: uppercase; letter-spacing: .07em; margin: 26px 0 10px; }
+.cartao { background: var(--card); border: 1px solid var(--linha); border-radius: 12px; overflow: hidden; }
+.linha { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--linha); }
+.linha:last-child { border-bottom: none; }
+.linha .nome { flex: 1; min-width: 0; font-size: 14.5px; }
+.linha .nome small { display: block; font-size: 12px; color: var(--txt-3); margin-top: 1px; }
+.linha .val { font-family: var(--mono); font-size: 14.5px; font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 500; }
+.pt { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+
+.chip { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.chip.ok { background: rgba(47,184,160,.14); color: var(--ok); }
+.chip.alerta { background: rgba(217,163,46,.14); color: var(--alerta); }
+.chip.perigo { background: rgba(228,117,106,.14); color: var(--perigo); }
+
+.vazio { padding: 22px 16px; text-align: center; color: var(--txt-3); font-size: 14px; }
+.nota { font-size: 12.5px; color: var(--txt-3); margin-top: 9px; line-height: 1.5; }
+
+/* login */
+.login { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.login .box { width: 100%; max-width: 360px; }
+.login h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.02em; margin-bottom: 6px; }
+.login p { color: var(--txt-2); font-size: 14.5px; margin-bottom: 22px; }
+.login input { width: 100%; background: var(--card); border: 1px solid var(--linha); border-radius: 10px; padding: 13px 15px; color: var(--txt); font-size: 16px; margin-bottom: 10px; }
+.login input:focus { outline: 2px solid var(--ok); outline-offset: -1px; border-color: transparent; }
+.login button { width: 100%; background: var(--ok); color: #06120F; border: 0; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 650; cursor: pointer; }
+.login button:disabled { opacity: .5; cursor: default; }
+.login .msg { margin-top: 14px; font-size: 14px; padding: 12px 14px; border-radius: 9px; }
+.login .msg.ok { background: rgba(47,184,160,.12); color: var(--ok); }
+.login .msg.err { background: rgba(228,117,106,.12); color: var(--perigo); }

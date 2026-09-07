@@ -1,0 +1,12 @@
+{
+  "name": "Financeiro Duda & Rayana",
+  "short_name": "Financeiro",
+  "description": "Para onde vai o dinheiro, em tempo real",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0E1216",
+  "theme_color": "#0E1216",
+  "icons": [
+    { "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
