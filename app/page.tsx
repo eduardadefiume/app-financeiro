@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabaseServer } from '@/lib/supabase/server';
 import Sair from './sair';
 
@@ -20,22 +21,39 @@ export default async function Painel() {
   const hoje = new Date();
   const ciclo = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
 
+  // Um painel financeiro nunca pode mostrar R$ 0 quando na verdade a consulta
+  // falhou. Toda leitura passa por aqui e qualquer erro aparece na tela.
+  const problemas: string[] = [];
+  const pega = async (nome: string, consulta: PromiseLike<any>): Promise<any> => {
+    const r = await consulta;
+    if (r?.error) problemas.push(`${nome}: ${r.error.message}`);
+    return r?.data ?? null;
+  };
+
   const [
     { data: user },
-    pessoa, salario, faturas, parcelas, liberacao, devedores, seguro, recorr, ultimos,
+    pessoa, salario, faturasBruto, parcelasBruto, liberacaoBruto,
+    devedoresBruto, seguro, recorrBruto, ultimosBruto,
   ] = await Promise.all([
     sb.auth.getUser().then((r) => ({ data: r.data.user })),
-    sb.from('pessoas').select('nome').maybeSingle().then((r) => r.data),
-    sb.from('v_salario_ciclo').select('*').order('ciclo', { ascending: false }).limit(1).maybeSingle().then((r) => r.data),
-    sb.from('v_ciclo_cartao').select('*').order('vence_em').then((r) => r.data ?? []),
-    sb.from('v_parcelas_abertas').select('*').gt('faltam', 0).order('ultimo_ciclo').then((r) => r.data ?? []),
-    sb.from('v_liberacao_mensal').select('*').gte('mes', ciclo).order('mes').then((r) => r.data ?? []),
-    sb.from('v_saldo_devedor').select('*').then((r) => r.data ?? []),
-    sb.from('v_parcela_segura').select('*').maybeSingle().then((r) => r.data),
-    sb.from('v_recorrencia').select('*').eq('situacao', 'ativo').order('valor_medio', { ascending: false }).limit(5).then((r) => r.data ?? []),
-    sb.from('transacoes').select('data,descricao,valor,categorias(nome,bucket)').lt('valor', 0)
-      .order('data', { ascending: false }).limit(12).then((r) => r.data ?? []),
+    pega('pessoas', sb.from('pessoas').select('nome').maybeSingle()),
+    pega('v_salario_ciclo', sb.from('v_salario_ciclo').select('*').order('ciclo', { ascending: false }).limit(1).maybeSingle()),
+    pega('v_ciclo_cartao', sb.from('v_ciclo_cartao').select('*').order('vence_em')),
+    pega('v_parcelas_abertas', sb.from('v_parcelas_abertas').select('*').gt('faltam', 0).order('ultimo_ciclo')),
+    pega('v_liberacao_mensal', sb.from('v_liberacao_mensal').select('*').gte('mes', ciclo).order('mes')),
+    pega('v_saldo_devedor', sb.from('v_saldo_devedor').select('*')),
+    pega('v_parcela_segura', sb.from('v_parcela_segura').select('*').maybeSingle()),
+    pega('v_recorrencia', sb.from('v_recorrencia').select('*').eq('situacao', 'ativo').order('valor_medio', { ascending: false }).limit(5)),
+    pega('transacoes', sb.from('transacoes').select('data,descricao,valor,categorias(nome,bucket)').lt('valor', 0)
+      .order('data', { ascending: false }).limit(12)),
   ]);
+
+  const faturas: any[] = faturasBruto ?? [];
+  const parcelas: any[] = parcelasBruto ?? [];
+  const liberacao: any[] = liberacaoBruto ?? [];
+  const devedores: any[] = devedoresBruto ?? [];
+  const recorr: any[] = recorrBruto ?? [];
+  const ultimos: any[] = ultimosBruto ?? [];
 
   const emAberto = faturas.filter((f) => f.situacao === 'em formacao');
   const atual = faturas.find((f) => f.situacao === 'fechada, vence agora') ?? emAberto[0];
@@ -59,6 +77,13 @@ export default async function Painel() {
         </div>
         <Sair />
       </header>
+
+      {problemas.length > 0 && (
+        <section className="falha">
+          <strong>O painel nao conseguiu ler estes dados</strong>
+          <ul>{problemas.map((p, i) => <li key={i}>{p}</li>)}</ul>
+        </section>
+      )}
 
       {/* ============ FATURA EM FORMAÇÃO ============ */}
       {formando && (

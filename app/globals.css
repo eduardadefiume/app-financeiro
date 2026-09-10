@@ -107,3 +107,10 @@ h2 { font-size: 12px; font-weight: 600; color: var(--txt-3); text-transform: upp
 .login .msg.err { background: rgba(228,103,92,.12); color: var(--perigo); }
 
 @media (max-width: 420px) { .fsplit { grid-template-columns: 1fr; } }
+
+/* ---------- falha de leitura: nunca esconder um erro atras de R$ 0 ---------- */
+.falha { background: rgba(228,103,92,.10); border: 1px solid var(--perigo);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.falha strong { display: block; font-size: 13.5px; color: var(--perigo); margin-bottom: 7px; }
+.falha ul { margin: 0; padding-left: 18px; }
+.falha li { font-family: var(--mono); font-size: 11.5px; color: var(--txt-2); line-height: 1.6; word-break: break-word; }
