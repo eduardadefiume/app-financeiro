@@ -24,8 +24,16 @@ export default async function Painel() {
   // Um painel financeiro nunca pode mostrar R$ 0 quando na verdade a consulta
   // falhou. Toda leitura passa por aqui e qualquer erro aparece na tela.
   const problemas: string[] = [];
-  const pega = async (nome: string, consulta: PromiseLike<any>): Promise<any> => {
-    const r = await consulta;
+  // Erros passageiros existem (diferenca de relogio entre servidores, por
+  // exemplo). Uma segunda tentativa evita tarja vermelha por um tropeco de
+  // fracao de segundo; se falhar de novo, ai sim aparece na tela.
+  const PASSAGEIRO = /issued at future|before valid|fetch failed|timeout|ECONNRESET/i;
+  const pega = async (nome: string, montar: () => PromiseLike<any>): Promise<any> => {
+    let r = await montar();
+    if (r?.error && PASSAGEIRO.test(r.error.message ?? '')) {
+      await new Promise((ok) => setTimeout(ok, 400));
+      r = await montar();
+    }
     if (r?.error) problemas.push(`${nome}: ${r.error.message}`);
     return r?.data ?? null;
   };
@@ -36,17 +44,17 @@ export default async function Painel() {
     devedoresBruto, seguro, recorrBruto, ultimosBruto, contasBruto,
   ] = await Promise.all([
     sb.auth.getUser().then((r) => ({ data: r.data.user })),
-    pega('pessoas', sb.from('pessoas').select('nome').maybeSingle()),
-    pega('v_salario_ciclo', sb.from('v_salario_ciclo').select('*').order('ciclo', { ascending: false }).limit(1).maybeSingle()),
-    pega('v_ciclo_cartao', sb.from('v_ciclo_cartao').select('*').order('vence_em')),
-    pega('v_parcelas_abertas', sb.from('v_parcelas_abertas').select('*').gt('faltam', 0).order('ultimo_ciclo')),
-    pega('v_liberacao_mensal', sb.from('v_liberacao_mensal').select('*').gte('mes', ciclo).order('mes')),
-    pega('v_saldo_devedor', sb.from('v_saldo_devedor').select('*')),
-    pega('v_parcela_segura', sb.from('v_parcela_segura').select('*').maybeSingle()),
-    pega('v_recorrencia', sb.from('v_recorrencia').select('*').eq('situacao', 'ativo').order('valor_medio', { ascending: false }).limit(5)),
-    pega('transacoes', sb.from('transacoes').select('data,descricao,valor,categorias(nome,bucket)').lt('valor', 0)
+    pega('pessoas', () => sb.from('pessoas').select('nome').maybeSingle()),
+    pega('v_salario_ciclo', () => sb.from('v_salario_ciclo').select('*').order('ciclo', { ascending: false }).limit(1).maybeSingle()),
+    pega('v_ciclo_cartao', () => sb.from('v_ciclo_cartao').select('*').order('vence_em')),
+    pega('v_parcelas_abertas', () => sb.from('v_parcelas_abertas').select('*').gt('faltam', 0).order('ultimo_ciclo')),
+    pega('v_liberacao_mensal', () => sb.from('v_liberacao_mensal').select('*').gte('mes', ciclo).order('mes')),
+    pega('v_saldo_devedor', () => sb.from('v_saldo_devedor').select('*')),
+    pega('v_parcela_segura', () => sb.from('v_parcela_segura').select('*').maybeSingle()),
+    pega('v_recorrencia', () => sb.from('v_recorrencia').select('*').eq('situacao', 'ativo').order('valor_medio', { ascending: false }).limit(5)),
+    pega('transacoes', () => sb.from('transacoes').select('data,descricao,valor,categorias(nome,bucket)').lt('valor', 0)
       .order('data', { ascending: false }).limit(12)),
-    pega('contas', sb.from('contas').select('nome,tipo,saldo,saldo_em,titular_externo')
+    pega('contas', () => sb.from('contas').select('nome,tipo,saldo,saldo_em,titular_externo')
       .eq('titular_externo', false).eq('ativa', true).order('saldo', { ascending: false })),
   ]);
 
