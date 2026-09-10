@@ -33,7 +33,7 @@ export default async function Painel() {
   const [
     { data: user },
     pessoa, salario, faturasBruto, parcelasBruto, liberacaoBruto,
-    devedoresBruto, seguro, recorrBruto, ultimosBruto,
+    devedoresBruto, seguro, recorrBruto, ultimosBruto, contasBruto,
   ] = await Promise.all([
     sb.auth.getUser().then((r) => ({ data: r.data.user })),
     pega('pessoas', sb.from('pessoas').select('nome').maybeSingle()),
@@ -46,6 +46,8 @@ export default async function Painel() {
     pega('v_recorrencia', sb.from('v_recorrencia').select('*').eq('situacao', 'ativo').order('valor_medio', { ascending: false }).limit(5)),
     pega('transacoes', sb.from('transacoes').select('data,descricao,valor,categorias(nome,bucket)').lt('valor', 0)
       .order('data', { ascending: false }).limit(12)),
+    pega('contas', sb.from('contas').select('nome,tipo,saldo,saldo_em,titular_externo')
+      .eq('titular_externo', false).eq('ativa', true).order('saldo', { ascending: false })),
   ]);
 
   const faturas: any[] = faturasBruto ?? [];
@@ -54,6 +56,7 @@ export default async function Painel() {
   const devedores: any[] = devedoresBruto ?? [];
   const recorr: any[] = recorrBruto ?? [];
   const ultimos: any[] = ultimosBruto ?? [];
+  const contas: any[] = contasBruto ?? [];
 
   const emAberto = faturas.filter((f) => f.situacao === 'em formacao');
   const atual = faturas.find((f) => f.situacao === 'fechada, vence agora') ?? emAberto[0];
@@ -67,6 +70,16 @@ export default async function Painel() {
   const parcelaSegura = num(seguro?.parcela_segura);
   const folga = num(seguro?.folga_hoje);
   const parcelaJan27 = num(seguro?.parcela_segura_jan27);
+
+  const emConta = contas.filter((c) => c.tipo === 'conta_corrente');
+  const saldoTotal = emConta.reduce((t, c) => t + num(c.saldo), 0);
+
+  const proximo = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+  const proximoNome = proximo.toLocaleDateString('pt-BR', { month: 'long' });
+  const doProximoMes = parcelas.filter((p) => p.no_proximo_mes);
+  const totalProximoMes = doProximoMes.reduce((t, p) => t + num(p.parcela), 0);
+  const meuProximoMes = doProximoMes.reduce((t, p) => t + num(p.minha_parte), 0);
+  const faltaPagarTotal = parcelas.reduce((t, p) => t + num(p.falta_pagar), 0);
 
   return (
     <main className="wrap">
@@ -118,6 +131,11 @@ export default async function Painel() {
       {/* ============ NÚMEROS DO MÊS ============ */}
       <div className="kpis">
         <div className="kpi">
+          <span className="k">Em conta hoje</span>
+          <span className={`v ${saldoTotal > 300 ? 'ok' : 'perigo'}`}>{brl(saldoTotal)}</span>
+          <span className="s">somando {emConta.length} contas</span>
+        </div>
+        <div className="kpi">
           <span className="k">Salário do ciclo</span>
           <span className="v">{brl0(salarioTotal)}</span>
           <span className="s">
@@ -125,9 +143,12 @@ export default async function Painel() {
           </span>
         </div>
         <div className="kpi">
-          <span className="k">Parcelas por mês</span>
-          <span className="v alerta">{brl0(compromissoMes)}</span>
-          <span className="s">{parcelas.length} compromissos abertos</span>
+          <span className="k">Vence em {proximoNome}</span>
+          <span className="v alerta">{brl0(totalProximoMes)}</span>
+          <span className="s">
+            {doProximoMes.length} parcelas
+            {meuProximoMes > 0 && <> · {brl0(meuProximoMes)} é sua parte</>}
+          </span>
         </div>
         <div className="kpi">
           <span className="k">Tenho a receber</span>
@@ -148,7 +169,34 @@ export default async function Painel() {
             )}
           </span>
         </div>
+        <div className="kpi">
+          <span className="k">Ainda devo em parcelas</span>
+          <span className="v">{brl0(faltaPagarTotal)}</span>
+          <span className="s">{parcelas.length} compromissos até {parcelas.length ? mes(String(parcelas[parcelas.length - 1].ultimo_ciclo)) : '—'}</span>
+        </div>
       </div>
+
+      {/* ============ SUAS CONTAS ============ */}
+      {contas.length > 0 && (
+        <>
+          <h2>Onde está o dinheiro</h2>
+          <div className="cartao">
+            {contas.map((c, i) => (
+              <div className="linha" key={i}>
+                <i className="pt" style={{ background: num(c.saldo) > 100 ? 'var(--ok)' : 'var(--perigo)' }} />
+                <span className="nome">
+                  {c.nome}
+                  <small>
+                    {c.tipo === 'cartao_credito' ? 'cartão' : 'conta'}
+                    {c.saldo_em && <> · lido {diaMes(String(c.saldo_em).slice(0, 10))}</>}
+                  </small>
+                </span>
+                <span className={`val ${num(c.saldo) > 100 ? 'ok' : ''}`}>{brl(num(c.saldo))}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* ============ A CONTA ENTRE VOCÊS ============ */}
       {devedores.length > 0 && (
@@ -187,8 +235,12 @@ export default async function Painel() {
                   <small>
                     {p.ultima_paga}/{p.parcela_total} pagas · faltam {p.faltam} · última em {mes(String(p.ultimo_ciclo))}
                     {p.de_quem !== 'Duda' && <> · {p.de_quem}</>}
+                    {num(p.minha_parte) > 0 && num(p.minha_parte) < num(p.parcela) && (
+                      <> · sua parte {brl(num(p.minha_parte))}</>
+                    )}
                   </small>
                 </span>
+                {p.no_proximo_mes && <span className="chip alerta">{proximoNome.slice(0, 3)}</span>}
                 <span className="val">
                   {brl(num(p.parcela))}
                   <small>{brl(num(p.falta_pagar))} total</small>
