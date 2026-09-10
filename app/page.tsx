@@ -47,6 +47,8 @@ export default async function Painel() {
   const aReceber = devedores.filter((d) => num(d.saldo_atual) > 0);
   const totalAReceber = aReceber.reduce((s, d) => s + num(d.saldo_atual), 0);
   const parcelaSegura = num(seguro?.parcela_segura);
+  const folga = num(seguro?.folga_hoje);
+  const parcelaJan27 = num(seguro?.parcela_segura_jan27);
 
   return (
     <main className="wrap">
@@ -110,7 +112,16 @@ export default async function Painel() {
         <div className="kpi">
           <span className="k">Parcela que cabe</span>
           <span className={`v ${parcelaSegura > 0 ? 'ok' : 'perigo'}`}>{brl0(parcelaSegura)}</span>
-          <span className="s">por mês, em quantas vezes for</span>
+          <span className="s">
+            {parcelaSegura > 0 ? (
+              <>por mês, em quantas vezes for</>
+            ) : (
+              <>
+                o mês fecha {brl0(Math.abs(folga))} no vermelho
+                {parcelaJan27 > 0 && <> · em jan/27 cabem {brl0(parcelaJan27)}</>}
+              </>
+            )}
+          </span>
         </div>
       </div>
 
